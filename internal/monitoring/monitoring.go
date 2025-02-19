@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"errors"
+	"github.com/Solvro/weekly-attendance-bot/dtos"
 	"github.com/bwmarrin/discordgo"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ type recorder struct {
 type channelRecorder struct {
 	mu              sync.RWMutex
 	minimalDuration time.Duration
-	users           map[string][]PresenceEntry
+	users           map[string][]dtos.PresenceEntry
 }
 
 var recorded = recorder{
@@ -31,7 +32,7 @@ func Begin(ch *discordgo.Channel, duration uint64) {
 	recorded.channels[ch.ID] = channelRecorder{
 		mu:              sync.RWMutex{},
 		minimalDuration: time.Duration(duration) * time.Minute,
-		users:           map[string][]PresenceEntry{},
+		users:           map[string][]dtos.PresenceEntry{},
 	}
 }
 
@@ -42,7 +43,7 @@ func IsRecordingChannel(ch *discordgo.Channel) bool {
 	return ok
 }
 
-func End(channelID string) (map[string][]PresenceEntry, time.Duration, error) {
+func End(channelID string) (map[string][]dtos.PresenceEntry, time.Duration, error) {
 	recorded.mu.Lock()
 	defer recorded.mu.Unlock()
 

@@ -8,6 +8,7 @@ go build -o bot cmd/bot/main.go
 
 Options:  
 - `-token` (required) - bot's secret  
+- `-db` (required) - path to an SQLite database
 - `-enable-logging` - whether to display non-essential logging
 
 ### Commands

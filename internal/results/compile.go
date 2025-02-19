@@ -3,7 +3,8 @@ package results
 import (
 	"bytes"
 	"fmt"
-	"github.com/Solvro/weekly-attendance-bot/internal/monitoring"
+	"github.com/Solvro/weekly-attendance-bot/dtos"
+	"github.com/Solvro/weekly-attendance-bot/internal/storage"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"time"
@@ -11,8 +12,9 @@ import (
 
 type Compiled map[*discordgo.User]time.Duration
 
-func CompileFromEvents(s *discordgo.Session, entriesPerUser map[string][]monitoring.PresenceEntry, minimalDuration time.Duration) Compiled {
+func CompileFromEvents(s *discordgo.Session, channelID string, entriesPerUser map[string][]dtos.PresenceEntry, minimalDuration time.Duration) Compiled {
 	attendancePerUser := map[*discordgo.User]time.Duration{}
+	at := time.Now()
 	for userId, entries := range entriesPerUser {
 		user, err := s.User(userId)
 		if err != nil {
@@ -20,7 +22,11 @@ func CompileFromEvents(s *discordgo.Session, entriesPerUser map[string][]monitor
 			continue
 		}
 
-		currentStatus := monitoring.PresenceLeft
+		if err := storage.InsertEvent(channelID, userId, dtos.PresenceLeft, at); err != nil {
+			log.Printf("Failed inserting an event into the db: %v", err)
+		}
+
+		currentStatus := dtos.PresenceLeft
 		var at time.Time
 		totalDuration := 0 * time.Minute
 		for _, entry := range entries {
@@ -32,15 +38,15 @@ func CompileFromEvents(s *discordgo.Session, entriesPerUser map[string][]monitor
 				continue
 			}
 
-			if entry.Event == monitoring.PresenceJoined {
+			if entry.Event == dtos.PresenceJoined {
 				at = entry.At
-			} else if currentStatus == monitoring.PresenceJoined && entry.Event == monitoring.PresenceLeft {
+			} else if currentStatus == dtos.PresenceJoined && entry.Event == dtos.PresenceLeft {
 				totalDuration += entry.At.Sub(at)
 			}
 			currentStatus = entry.Event
 		}
 
-		if currentStatus == monitoring.PresenceJoined {
+		if currentStatus == dtos.PresenceJoined {
 			totalDuration += time.Now().Sub(at)
 		}
 

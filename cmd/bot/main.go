@@ -4,12 +4,20 @@ import (
 	"github.com/Solvro/weekly-attendance-bot/commands"
 	"github.com/Solvro/weekly-attendance-bot/internal/config"
 	"github.com/Solvro/weekly-attendance-bot/internal/monitoring"
+	"github.com/Solvro/weekly-attendance-bot/internal/storage"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
 
 func init() {
 	config.LoadAndValidate()
+	if err := storage.ConnectToSqlite(); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := storage.RunInitialMigrations(); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func main() {

@@ -48,7 +48,7 @@ func HandleEndWeekly(s *discordgo.Session, i *discordgo.InteractionCreate) error
 		return err
 	}
 
-	attendancePerUser := results.CompileFromEvents(s, entries, minimalDuration)
+	attendancePerUser := results.CompileFromEvents(s, channel.ID, entries, minimalDuration)
 
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,

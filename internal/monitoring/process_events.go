@@ -1,7 +1,9 @@
 package monitoring
 
 import (
+	"github.com/Solvro/weekly-attendance-bot/dtos"
 	"github.com/Solvro/weekly-attendance-bot/internal/config"
+	"github.com/Solvro/weekly-attendance-bot/internal/storage"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"time"
@@ -18,10 +20,16 @@ func ForceJoin(channelID string, userID string) {
 
 	joined.mu.Lock()
 	defer joined.mu.Unlock()
-	joined.users[userID] = append(joined.users[userID], PresenceEntry{
-		Event: PresenceJoined,
-		At:    time.Now(),
+
+	at := time.Now()
+	joined.users[userID] = append(joined.users[userID], dtos.PresenceEntry{
+		Event: dtos.PresenceJoined,
+		At:    at,
 	})
+
+	if err := storage.InsertEvent(channelID, userID, dtos.PresenceJoined, at); err != nil {
+		log.Printf("Failed inserting an event into the db: %v", err)
+	}
 
 	if config.Logging {
 		log.Printf("Force joined user %s to be monitored in channel %s\n", userID, channelID)
@@ -32,6 +40,8 @@ func ProcessEvents(s *discordgo.Session, vs *discordgo.VoiceStateUpdate) {
 	recorded.mu.RLock()
 	defer recorded.mu.RUnlock()
 
+	at := time.Now()
+
 	joined, isMonitoringJoined := recorded.channels[vs.ChannelID]
 	if vs.BeforeUpdate == nil {
 		if !isMonitoringJoined {
@@ -41,10 +51,14 @@ func ProcessEvents(s *discordgo.Session, vs *discordgo.VoiceStateUpdate) {
 		joined.mu.Lock()
 		defer joined.mu.Unlock()
 
-		joined.users[vs.UserID] = append(joined.users[vs.UserID], PresenceEntry{
-			Event: PresenceJoined,
-			At:    time.Now(),
+		joined.users[vs.UserID] = append(joined.users[vs.UserID], dtos.PresenceEntry{
+			Event: dtos.PresenceJoined,
+			At:    at,
 		})
+
+		if err := storage.InsertEvent(vs.ChannelID, vs.UserID, dtos.PresenceJoined, at); err != nil {
+			log.Printf("Failed inserting an event into the db: %v", err)
+		}
 
 		if config.Logging {
 			log.Printf("User %v joined a monitored channel (%v)\n", vs.UserID, vs.ChannelID)
@@ -64,10 +78,14 @@ func ProcessEvents(s *discordgo.Session, vs *discordgo.VoiceStateUpdate) {
 	if isMonitoringLeft && vs.BeforeUpdate.ChannelID != vs.ChannelID {
 		left.mu.Lock()
 		defer left.mu.Unlock()
-		left.users[vs.UserID] = append(left.users[vs.UserID], PresenceEntry{
-			Event: PresenceLeft,
-			At:    time.Now(),
+		left.users[vs.UserID] = append(left.users[vs.UserID], dtos.PresenceEntry{
+			Event: dtos.PresenceLeft,
+			At:    at,
 		})
+
+		if err := storage.InsertEvent(vs.ChannelID, vs.UserID, dtos.PresenceLeft, at); err != nil {
+			log.Printf("Failed inserting an event into the db: %v", err)
+		}
 
 		if config.Logging {
 			log.Printf("User %v left a monitored channel (%v)\n", vs.UserID, vs.BeforeUpdate.ChannelID)
@@ -78,10 +96,15 @@ func ProcessEvents(s *discordgo.Session, vs *discordgo.VoiceStateUpdate) {
 	if isMonitoringJoined && vs.BeforeUpdate.ChannelID != vs.ChannelID {
 		joined.mu.Lock()
 		defer joined.mu.Unlock()
-		joined.users[vs.UserID] = append(joined.users[vs.UserID], PresenceEntry{
-			Event: PresenceJoined,
-			At:    time.Now(),
+
+		joined.users[vs.UserID] = append(joined.users[vs.UserID], dtos.PresenceEntry{
+			Event: dtos.PresenceJoined,
+			At:    at,
 		})
+
+		if err := storage.InsertEvent(vs.ChannelID, vs.UserID, dtos.PresenceJoined, at); err != nil {
+			log.Printf("Failed inserting an event into the db: %v", err)
+		}
 
 		if config.Logging {
 			log.Printf("User %v joined a monitored channel (%v) by switching from (%v)\n", vs.UserID, vs.ChannelID, vs.BeforeUpdate.ChannelID)

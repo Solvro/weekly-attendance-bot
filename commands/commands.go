@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -10,7 +9,6 @@ var administratorPermissions int64 = discordgo.PermissionAdministrator
 
 func Register(s *discordgo.Session, cmd *discordgo.ApplicationCommand) error {
 	_, err := s.ApplicationCommandCreate(s.State.User.ID, "", cmd)
-	fmt.Println("here")
 	return err
 }
 
