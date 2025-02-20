@@ -1,3 +1,6 @@
 .idea
 *.sqlite
 bot
+.env
+.env.*
+!.env.example
